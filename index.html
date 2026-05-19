@@ -2,58 +2,65 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Chromebook AR Canvas Fix</title>
-    
-    <script src="https://aframe.io"></script>
-    <script src="https://githack.com"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromebook Camera CSS-3D Fix</title>
     <style>
+      /* 画面全体にカメラ映像を敷き詰める */
       body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
-      
-      /* カメラ映像を最背面に配置 */
-      #webcam-fallback { 
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        object-fit: cover; z-index: 1; 
+      #webcam { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+
+      /* 立体（立方体）を画面中央の最前面に浮かび上がらせる */
+      .stage {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 200px; height: 200px; perspective: 600px; z-index: 10; pointer-events: none;
       }
-      
-      /* 3D空間のキャンバスを手前に配置（カメラ映像より大きい数値） */
-      a-scene { 
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-        z-index: 10; pointer-events: none;
+      .cube {
+        width: 100%; height: 100%; position: absolute; transform-style: preserve-3d;
+        animation: rotate 8s infinite linear; /* 立体感を出すために自動で回転させます */
+      }
+      .face {
+        position: absolute; width: 200px; height: 200px; 
+        background: rgba(255, 0, 0, 0.9); border: 2px solid #fff; box-sizing: border-box;
+      }
+      /* 立体的な箱の6面を組み立てる設定 */
+      .front  { transform: rotateY(  0deg) translateZ(100px); }
+      .back   { transform: rotateY(180deg) translateZ(100px); }
+      .right  { transform: rotateY( 90deg) translateZ(100px); }
+      .left   { transform: rotateY(-90deg) translateZ(100px); }
+      .top    { transform: rotateX( 90deg) translateZ(100px); }
+      .bottom { transform: rotateX(-90deg) translateZ(100px); }
+
+      @keyframes rotate {
+        from { transform: rotateX(0deg) rotateY(0deg); }
+        to { transform: rotateX(360deg) rotateY(360deg); }
       }
     </style>
   </head>
-  
   <body>
-    <!-- カメラ映像の背景 -->
-    <video id="webcam-fallback" autoplay playsinline muted></video>
 
-    <!-- 
-      ① 【超重要】「visible: false」を背景コンポーネントに指定。
-      これでA-Frame特有の真っ黒な不透明背景が消え、下のカメラ映像が透けて見えます。
-    -->
-    <a-scene embedded vr-mode-ui="enabled: false" background="visible: false">
-      
-      <!-- カメラの正面（手前1.5メートル）の位置に赤い箱を固定 -->
-      
-        <a-box 
-          position="0 0 -1.5" 
-          material="color: #FF0000; shader: flat;" 
-          scale="0.3 0.3 0.3">
-        </a-box>
-      
-      
-    </a-scene>
+    <!-- 背景のカメラ映像 -->
+    <video id="webcam" autoplay playsinline muted></video>
+
+    <!-- 最前面に強制合成する立体（赤い箱） -->
+    <div class="stage">
+      <div class="cube">
+        <div class="face front"></div>
+        <div class="face back"></div>
+        <div class="face right"></div>
+        <div class="face left"></div>
+        <div class="face top"></div>
+        <div class="face bottom"></div>
+      </div>
+    </div>
 
     <script>
-      // Chromebookの内蔵カメラを起動して背景に流し込む処理
+      // カメラを起動して映像を流し込む処理
       navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
         audio: false 
       })
       .then(function(stream) {
-        document.getElementById('webcam-fallback').srcObject = stream;
+        document.getElementById('webcam').srcObject = stream;
       })
       .catch(function(err) {
         alert("カメラ起動エラー: " + err.message);
