@@ -2,30 +2,38 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Camera Force Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR.js Fixed Test</title>
+    
+    <!-- 互換性が最も高い A-Frame 1.3.0 を採用 -->
     <script src="https://aframe.io"></script>
+    
+    <!-- A-Frameに対応した公式のAR.js（最新ビルド）を読み込み -->
     <script src="https://githack.com"></script>
   </head>
+  
   <body style="margin: 0; overflow: hidden;">
     
-    <a-scene embedded arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;">
-      <a-box position="0 0 -2" material="color: red;"></a-box>
+    <!-- trackingMethodを定義し、カメラ映像のブレを防ぐ設定 -->
+    <a-scene 
+      embedded 
+      arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+      vr-mode-ui="enabled: false">
+      
+      <!-- 
+        カメラの初期位置は「0 1.6 0」（人間の目線の高さ）です。
+        オブジェクトを「0 1.6 -3」に配置することで、首を動かさず真っ直ぐ前（奥に3m）を見た位置に出現させます。
+      -->
+      <a-box 
+        position="0 1.6 -3" 
+        material="color: #FF0000; shader: flat;" 
+        scale="0.5 0.5 0.5">
+      </a-box>
+      
+      <!-- カメラ自体の位置を初期化 -->
+      
       
     </a-scene>
 
-    <script>
-      // 画面が開いた瞬間に、JavaScript側から強制的にカメラを呼び出す処理
-      navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function(stream) {
-          console.log("カメラの起動に成功しました");
-          // テスト用に起動したカメラストリームを一度止める（AR.js側に引き渡すため）
-          stream.getTracks().forEach(track => track.stop());
-        })
-        .catch(function(err) {
-          console.error("カメラの強制起動エラー:", err);
-          alert("ブラウザがカメラを認識できません: " + err.name);
-        });
-    </script>
   </body>
 </html>
