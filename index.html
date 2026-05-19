@@ -3,37 +3,56 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR.js Fixed Test</title>
+    <title>Chromebook AR Fix</title>
     
-    <!-- 互換性が最も高い A-Frame 1.3.0 を採用 -->
+    <!-- 安定性の高い A-Frame 1.4.0 を採用 -->
     <script src="https://aframe.io"></script>
-    
-    <!-- A-Frameに対応した公式のAR.js（最新ビルド）を読み込み -->
+    <!-- 公式の最新 AR.js を読み込み -->
     <script src="https://githack.com"></script>
+
+    <style>
+      /* 画面が真っ白に固定されるのを防ぐための強制CSS */
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent; }
+      #webcam-fallback { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+      a-scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    </style>
   </head>
   
-  <body style="margin: 0; overflow: hidden;">
-    
-    <!-- trackingMethodを定義し、カメラ映像のブレを防ぐ設定 -->
+  <body>
+    <!-- 1. AR.jsがカメラ取得に失敗したとき用の、強制カメラ映像表示タグ -->
+    <video id="webcam-fallback" autoplay playsinline muted></video>
+
+    <!-- 2. AR空間（カメラのバグを防ぐため、sourceTypeをあえて一時的に制御） -->
     <a-scene 
       embedded 
-      arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+      arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;"
       vr-mode-ui="enabled: false">
       
-      <!-- 
-        カメラの初期位置は「0 1.6 0」（人間の目線の高さ）です。
-        オブジェクトを「0 1.6 -3」に配置することで、首を動かさず真っ直ぐ前（奥に3m）を見た位置に出現させます。
-      -->
-      <a-box 
-        position="0 1.6 -3" 
-        material="color: #FF0000; shader: flat;" 
-        scale="0.5 0.5 0.5">
-      </a-box>
-      
-      <!-- カメラ自体の位置を初期化 -->
+      <!-- 目線の正面に赤い立方体を配置 -->
+      <a-box position="0 1.6 -2" material="color: #FF0000; shader: flat;" scale="0.5 0.5 0.5"></a-box>
       
       
     </a-scene>
 
+    <script>
+      // 3. ChromebookのカメラをJavaScript側から「確実に」起動して画面の背景に敷き詰める処理
+      navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: "user", // 内蔵インカメラを指定
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }, 
+        audio: false 
+      })
+      .then(function(stream) {
+        const videoElement = document.getElementById('webcam-fallback');
+        videoElement.srcObject = stream;
+        console.log("バックアップ用カメラの起動に成功しました");
+      })
+      .catch(function(err) {
+        console.error("カメラの起動に完全に失敗しました:", err);
+        alert("カメラにアクセスできません: " + err.message);
+      });
+    </script>
   </body>
 </html>
