@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>ChromeOS AR.js Test</title>
+    <!-- ① A-Frame（3D描画ライブラリ）の導入 -->
+    <script src="https://aframe.io"></script>
+    <!-- ② AR.js（AR機能ライブラリ）の導入 -->
+    <script src="https://githack.com"></script>
+  </head>
+  <body style="margin: 0; overflow: hidden;">
+    <!-- ARを表示するステージ（シーン）の作成 -->
+    <a-scene embedded arjs>
+      <!-- ARマーカー（Hiroマーカー）の上に赤い立方体を配置 -->
+      <a-marker preset="hiro">
+        <a-box position="0 0.5 0" material="color: red;"></a-box>
+      </a-marker>
+      <!-- カメラの設置 -->
+      
+    </a-scene>
+  </body>
+</html>
