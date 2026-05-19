@@ -3,77 +3,82 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chromebook Camera Canvas Fix</title>
+    <title>Chromebook Sync Fix</title>
     <style>
       body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
-      /* 画面全体に描画用キャンバスを配置。これ1枚しか画面に存在させません */
       #ar-canvas { width: 100%; height: 100%; object-fit: cover; }
     </style>
   </head>
   <body>
 
-    <!-- 描画用のキャンバス（1枚だけ） -->
+    <!-- 描画用のキャンバス -->
     <canvas id="ar-canvas"></canvas>
 
     <script>
       const canvas = document.getElementById('ar-canvas');
       const ctx = canvas.getContext('2d');
       
-      // 画面に映らない、内部処理用のビデオタグを作成
+      // 内部処理用のビデオタグ
       const video = document.createElement('video');
       video.autoplay = true;
       video.playsInline = true;
       video.muted = true;
 
-      let rotation = 0; // 四角形を回転させるための角度
+      let rotation = 0;
+      let isCameraReady = false; // カメラの準備ができたか管理するフラグ
 
-      // 1. Chromebookのカメラを起動
+      // 1. カメラを起動
       navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "user", width: 640, height: 480 }, 
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
         audio: false 
       })
       .then(function(stream) {
         video.srcObject = stream;
-        video.addEventListener('loadedmetadata', () => {
-          // キャンバスのサイズをカメラの解像度と同じにする
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          // ループ処理（描画）を開始
-          drawLoop();
+        
+        // 【重要】ブラウザが動画の再生（受信）を実際に開始した瞬間をキャッチ
+        video.addEventListener('playing', () => {
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          isCameraReady = true; // ここで初めて準備完了にする
         });
       })
       .catch(function(err) {
         alert("カメラ起動エラー: " + err.message);
       });
 
-      // 2. 毎フレーム、カメラ映像と赤い箱を同時に1つのキャンバスに描く
+      // 2. 毎フレーム実行されるループ関数
       function drawLoop() {
-        // キャンバスをクリア
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 先に次のフレームの予約をしておく（ループを途切れさせない）
+        requestAnimationFrame(drawLoop);
 
-        // ① まず背景にカメラ映像を描画
+        // カメラの準備ができていない（映像が届いていない）間は、画面を一旦クリアして待機
+        if (!isCameraReady) {
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          return; 
+        }
+
+        // ① 背景にカメラ映像を描写
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // ② その上に「同じタイミング」で赤い四角形を描画（これで後ろに隠れるのを防ぐ）
+        // ② その上に赤い四角を描写
         ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2); // 画面中央を基準にする
-        ctx.rotate(rotation); // くるくる回転させる
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rotation);
         
-        ctx.fillStyle = "rgba(255, 0, 0, 0.9)"; // 赤色（不透明度90%）
-        ctx.strokeStyle = "#ffffff"; // 白い枠線
-        ctx.lineWidth = 5;
+        ctx.fillStyle = "rgba(255, 0, 0, 0.9)";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 4;
         
-        // 中央に100px四方の箱を描く
         ctx.fillRect(-50, -50, 100, 100);
         ctx.strokeRect(-50, -50, 100, 100);
         ctx.restore();
 
-        // 角度を少しずつ増やす（アニメーション）
         rotation += 0.02;
-
-        // 次のフレームを要請（ループ）
-        requestAnimationFrame(drawLoop);
       }
+
+      // ループ処理を起動（カメラの状態に関わらず監視をスタート）
+      drawLoop();
     </script>
   </body>
 </html>
