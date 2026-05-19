@@ -2,23 +2,30 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>Chromebook Camera Fix</title>
-    <!-- 安定して動く A-Frame のバージョンに変更 -->
+    <meta name="viewport" content="width=device-width, initial-scale=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>Camera Force Test</title>
     <script src="https://aframe.io"></script>
-    <!-- 最新の AR.js 配信元のコードに変更 -->
     <script src="https://githack.com"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
     
-    <!-- 読み込みエラーを防ぐために設定を最適化 -->
     <a-scene embedded arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false;">
-      
-      <!-- カメラの正面（奥に2メートル）の位置に赤い立方体を配置 -->
       <a-box position="0 0 -2" material="color: red;"></a-box>
-      
       
     </a-scene>
 
+    <script>
+      // 画面が開いた瞬間に、JavaScript側から強制的にカメラを呼び出す処理
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+          console.log("カメラの起動に成功しました");
+          // テスト用に起動したカメラストリームを一度止める（AR.js側に引き渡すため）
+          stream.getTracks().forEach(track => track.stop());
+        })
+        .catch(function(err) {
+          console.error("カメラの強制起動エラー:", err);
+          alert("ブラウザがカメラを認識できません: " + err.name);
+        });
+    </script>
   </body>
 </html>
