@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Chromebook AR Perfect Fix</title>
+    <title>Chromebook AR Canvas Fix</title>
     
     <script src="https://aframe.io"></script>
     <script src="https://githack.com"></script>
@@ -11,13 +11,13 @@
     <style>
       body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
       
-      /* ① カメラ映像を一番奥（z-index: -1）に配置 */
+      /* カメラ映像を最背面に配置 */
       #webcam-fallback { 
         position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-        object-fit: cover; z-index: -1; 
+        object-fit: cover; z-index: 1; 
       }
       
-      /* ② 3D空間のキャンバスを一番手前（z-index: 10）に強制配置、背景は透明に */
+      /* 3D空間のキャンバスを手前に配置（カメラ映像より大きい数値） */
       a-scene { 
         position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
         z-index: 10; pointer-events: none;
@@ -29,18 +29,17 @@
     <!-- カメラ映像の背景 -->
     <video id="webcam-fallback" autoplay playsinline muted></video>
 
-    <!-- 3D空間（透明にして背景のカメラを透かす） -->
-    <a-scene embedded vr-mode-ui="enabled: false">
+    <!-- 
+      ① 【超重要】「visible: false」を背景コンポーネントに指定。
+      これでA-Frame特有の真っ黒な不透明背景が消え、下のカメラ映像が透けて見えます。
+    -->
+    <a-scene embedded vr-mode-ui="enabled: false" background="visible: false">
       
-      <!-- 
-        ③ カメラの「中（子要素）」に直接赤い箱を配置します。
-        こうすることで、Chromebookがどんな向きを向いていても、
-        画面のド真ん中の手前1.5メートルの位置に「絶対」に赤い箱が固定されて映ります。
-      -->
+      <!-- カメラの正面（手前1.5メートル）の位置に赤い箱を固定 -->
       
         <a-box 
           position="0 0 -1.5" 
-          material="color: #FF0000; shader: flat; transparent: true; opacity: 0.9;" 
+          material="color: #FF0000; shader: flat;" 
           scale="0.3 0.3 0.3">
         </a-box>
       
@@ -48,9 +47,9 @@
     </a-scene>
 
     <script>
-      // カメラを起動して背景に流し込む処理
+      // Chromebookの内蔵カメラを起動して背景に流し込む処理
       navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "user", width: 640, height: 480 }, 
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
         audio: false 
       })
       .then(function(stream) {
