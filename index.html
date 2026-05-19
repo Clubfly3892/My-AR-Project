@@ -3,68 +3,77 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chromebook Camera CSS-3D Fix</title>
+    <title>Chromebook Camera Canvas Fix</title>
     <style>
-      /* 画面全体にカメラ映像を敷き詰める */
       body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
-      #webcam { position: fixed; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-
-      /* 立体（立方体）を画面中央の最前面に浮かび上がらせる */
-      .stage {
-        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 200px; height: 200px; perspective: 600px; z-index: 10; pointer-events: none;
-      }
-      .cube {
-        width: 100%; height: 100%; position: absolute; transform-style: preserve-3d;
-        animation: rotate 8s infinite linear; /* 立体感を出すために自動で回転させます */
-      }
-      .face {
-        position: absolute; width: 200px; height: 200px; 
-        background: rgba(255, 0, 0, 0.9); border: 2px solid #fff; box-sizing: border-box;
-      }
-      /* 立体的な箱の6面を組み立てる設定 */
-      .front  { transform: rotateY(  0deg) translateZ(100px); }
-      .back   { transform: rotateY(180deg) translateZ(100px); }
-      .right  { transform: rotateY( 90deg) translateZ(100px); }
-      .left   { transform: rotateY(-90deg) translateZ(100px); }
-      .top    { transform: rotateX( 90deg) translateZ(100px); }
-      .bottom { transform: rotateX(-90deg) translateZ(100px); }
-
-      @keyframes rotate {
-        from { transform: rotateX(0deg) rotateY(0deg); }
-        to { transform: rotateX(360deg) rotateY(360deg); }
-      }
+      /* 画面全体に描画用キャンバスを配置。これ1枚しか画面に存在させません */
+      #ar-canvas { width: 100%; height: 100%; object-fit: cover; }
     </style>
   </head>
   <body>
 
-    <!-- 背景のカメラ映像 -->
-    <video id="webcam" autoplay playsinline muted></video>
-
-    <!-- 最前面に強制合成する立体（赤い箱） -->
-    <div class="stage">
-      <div class="cube">
-        <div class="face front"></div>
-        <div class="face back"></div>
-        <div class="face right"></div>
-        <div class="face left"></div>
-        <div class="face top"></div>
-        <div class="face bottom"></div>
-      </div>
-    </div>
+    <!-- 描画用のキャンバス（1枚だけ） -->
+    <canvas id="ar-canvas"></canvas>
 
     <script>
-      // カメラを起動して映像を流し込む処理
+      const canvas = document.getElementById('ar-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // 画面に映らない、内部処理用のビデオタグを作成
+      const video = document.createElement('video');
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true;
+
+      let rotation = 0; // 四角形を回転させるための角度
+
+      // 1. Chromebookのカメラを起動
       navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        video: { facingMode: "user", width: 640, height: 480 }, 
         audio: false 
       })
       .then(function(stream) {
-        document.getElementById('webcam').srcObject = stream;
+        video.srcObject = stream;
+        video.addEventListener('loadedmetadata', () => {
+          // キャンバスのサイズをカメラの解像度と同じにする
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          // ループ処理（描画）を開始
+          drawLoop();
+        });
       })
       .catch(function(err) {
         alert("カメラ起動エラー: " + err.message);
       });
+
+      // 2. 毎フレーム、カメラ映像と赤い箱を同時に1つのキャンバスに描く
+      function drawLoop() {
+        // キャンバスをクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // ① まず背景にカメラ映像を描画
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // ② その上に「同じタイミング」で赤い四角形を描画（これで後ろに隠れるのを防ぐ）
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2); // 画面中央を基準にする
+        ctx.rotate(rotation); // くるくる回転させる
+        
+        ctx.fillStyle = "rgba(255, 0, 0, 0.9)"; // 赤色（不透明度90%）
+        ctx.strokeStyle = "#ffffff"; // 白い枠線
+        ctx.lineWidth = 5;
+        
+        // 中央に100px四方の箱を描く
+        ctx.fillRect(-50, -50, 100, 100);
+        ctx.strokeRect(-50, -50, 100, 100);
+        ctx.restore();
+
+        // 角度を少しずつ増やす（アニメーション）
+        rotation += 0.02;
+
+        // 次のフレームを要請（ループ）
+        requestAnimationFrame(drawLoop);
+      }
     </script>
   </body>
 </html>
